@@ -3,6 +3,7 @@ import sqlite3
 from flask_bootstrap import Bootstrap
 from flask import Flask, render_template
 from datetime import datetime
+import requests
 
 app = Flask(__name__)
 bootstrap = Bootstrap(app)
@@ -181,27 +182,18 @@ def get_currencies():
 # Создать новую валюту
 @app.route("/currencies", methods=["POST"])
 def create_currency():
-    currency_data = request.json
+    url = "https://open.er-api.com/v6/latest/RUB"
+    response = requests.get(url)
+    rates = response.json()["rates"]
+    print(rates)
     conn = sqlite3.connect(db_name)
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO currencies (name, code, symbol) VALUES (?, ?, ?)",
-                   (currency_data["name"], currency_data["code"], currency_data["symbol"]))
-    currency_id = cursor.lastrowid
+    cursor.execute("DELETE FROM currencies")
+    for rate,value in rates.items():
+        cursor.execute("INSERT INTO currencies(name,exchange_rate) VALUES (?,?)", (rate, value))
     conn.commit()
     conn.close()
-    return jsonify({"id": currency_id}), 201
-
-# Обновить информацию о валюте
-@app.route("/currencies/<int:currency_id>", methods=["PUT"])
-def update_currency(currency_id):
-    currency_data = request.json
-    conn = sqlite3.connect(db_name)
-    cursor = conn.cursor()
-    cursor.execute("UPDATE currencies SET name=?, code=?, symbol=? WHERE id=?",
-               (currency_data["name"], currency_data["code"], currency_data["symbol"], currency_id))
-    conn.commit()
-    conn.close()
-    return jsonify({"message": "Currency updated successfully"})
+    return jsonify({"message": "Валюты успешно обновлены."})
 
 #Удалить валюту
 @app.route("/currencies/int:currency_id", methods=["DELETE"])
@@ -211,7 +203,7 @@ def delete_currency(currency_id):
     cursor.execute("DELETE FROM currencies WHERE id=?", (currency_id,))
     conn.commit()
     conn.close()
-    return jsonify({"message": "Currency deleted successfully"})
+    return jsonify({"message": "Валюта успешно удалена"})
 
 ###КАРТЫ###
 
@@ -380,51 +372,6 @@ def delete_atm(atm_id):
     conn.close()
     return jsonify({"message": "ATM deleted successfully"})
 
-###КУРСЫ###
-
-# Получить список курсов валют
-@app.route("/exchange_rates", methods=["GET"])
-def get_exchange_rates():
-    conn = sqlite3.connect(db_name)
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM exchange_rates")
-    exchange_rates = cursor.fetchall()
-    conn.close()
-    return jsonify(exchange_rates)
-
-# Добавить новый курс валюты
-@app.route("/exchange_rates", methods=["POST"])
-def create_exchange_rate():
-    exchange_rate_data = request.json
-    conn = sqlite3.connect(db_name)
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO exchange_rates (date, base_currency, exchange_currency, exchange_rate) VALUES (?, ?, ?, ?)",
-                   (exchange_rate_data["date"], exchange_rate_data["base_currency"], exchange_rate_data["exchange_currency"], exchange_rate_data["exchange_rate"]))
-    conn.commit()
-    conn.close()
-    return jsonify({"message": "Exchange rate created successfully"})
-
-# Обновить курс валюты
-@app.route("/exchange_rates/<int:exchange_rate_id>", methods=["PUT"])
-def update_exchange_rate(exchange_rate_id):
-    exchange_rate_data = request.json
-    conn = sqlite3.connect(db_name)
-    cursor = conn.cursor()
-    cursor.execute("UPDATE exchange_rates SET date=?, base_currency=?, exchange_currency=?, exchange_rate=? WHERE id=?",
-                   (exchange_rate_data["date"], exchange_rate_data["base_currency"], exchange_rate_data["exchange_currency"], exchange_rate_data["exchange_rate"], exchange_rate_id))
-    conn.commit()
-    conn.close()
-    return jsonify({"message": "Exchange rate updated successfully"})
-
-# Удалить курс валюты
-@app.route("/exchange_rates/<int:exchange_rate_id>", methods=["DELETE"])
-def delete_exchange_rate(exchange_rate_id):
-    conn = sqlite3.connect(db_name)
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM exchange_rates WHERE id=?", (exchange_rate_id,))
-    conn.commit()
-    conn.close()
-    return jsonify({"message": "Exchange rate deleted successfully"})
 
 
 # Запуск приложения
