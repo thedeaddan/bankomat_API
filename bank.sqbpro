@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="Z:\Cursach\bank.db" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure browser pragmas query" current="0"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="2324"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><current_table name="4,8:mainaccounts"/><default_encoding codec=""/><browse_table_settings/></tab_browse><tab_sql><sql name="SQL 1">CREATE TABLE users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  first_name VARCHAR(50) NOT NULL,
+  last_name VARCHAR(50) NOT NULL,
+  email VARCHAR(100) NOT NULL,
+  password VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE accounts (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  account_number VARCHAR(20) NOT NULL,
+  balance DECIMAL(10, 2) NOT NULL,
+  currency VARCHAR(3) NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users (id)
+);
+
+CREATE TABLE transactions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  account_id INT NOT NULL,
+  date_ TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  type VARCHAR(10) NOT NULL,
+  amount FLOAT NOT NULL,
+  description VARCHAR(255) NOT NULL
+  
+);
+
+CREATE TABLE atm (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  location VARCHAR(100) NOT NULL,
+  available_cash DECIMAL(10, 2) NOT NULL
+);
+CREATE TABLE audit_log (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  transaction_id INT NOT NULL,
+  user_id INT NOT NULL,
+  atm_id INT NOT NULL,
+  date_ TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  description VARCHAR(255) NOT NULL,
+  FOREIGN KEY (transaction_id) REFERENCES transactions (id),
+  FOREIGN KEY (user_id) REFERENCES users (id),
+  FOREIGN KEY (atm_id) REFERENCES atm (id)
+);
+</sql><current_tab id="0"/></tab_sql></sqlb_project>

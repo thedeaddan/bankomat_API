@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="Y:\Cursach\atm_system.db" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure browser pragmas query" current="0"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="1173"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><current_table name="4,3:mainatm"/><default_encoding codec=""/><browse_table_settings/></tab_browse><tab_sql><sql name="SQL 1">CREATE TABLE users (
+id INTEGER PRIMARY KEY,
+first_name TEXT,
+last_name TEXT,
+pin INTEGER,
+balance FLOAT
+);
+
+CREATE TABLE transactions (
+id INTEGER PRIMARY KEY,
+user_id INTEGER,
+transaction_type TEXT,
+transaction_amount FLOAT,
+transaction_time DATETIME,
+FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
+CREATE TABLE cards (
+id INTEGER PRIMARY KEY,
+user_id INTEGER,
+card_number TEXT,
+expiration_date TEXT,
+cvv TEXT,
+FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
+CREATE TABLE atm (
+id INTEGER PRIMARY KEY,
+location TEXT,
+cash FLOAT
+);
+
+CREATE TABLE operations (
+id INTEGER PRIMARY KEY,
+name TEXT,
+description TEXT
+);
+
+
+CREATE TABLE currencies (
+id INTEGER PRIMARY KEY,
+name TEXT,
+exchange_rate FLOAT
+);
+
+CREATE TABLE exchange_rates (
+id INTEGER PRIMARY KEY,
+currency_id INTEGER,
+rate FLOAT,
+timestamp DATETIME,
+FOREIGN KEY(currency_id) REFERENCES currencies(id)
+);</sql><current_tab id="0"/></tab_sql></sqlb_project>

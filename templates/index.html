@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Пример работы функций</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    h1 {
+      color: #333;
+      text-align: center;
+    }
+
+    .button {
+      background-color: #4CAF50;
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      margin: 10px;
+      cursor: pointer;
+    }
+
+    .input-field {
+      margin-bottom: 10px;
+    }
+
+    .input-field label {
+      display: block;
+      font-weight: bold;
+    }
+
+    .input-field input {
+      padding: 5px;
+      width: 100%;
+    }
+
+    .response {
+      margin-top: 20px;
+      border: 1px solid #ccc;
+      padding: 10px;
+    }
+
+    .function-divider {
+      margin-top: 30px;
+      border-top: 1px solid #ccc;
+    }
+
+    .user-info {
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Пример работы функций</h1>
+
+  <div class="input-field">
+    <label for="server-url">URL сервера:</label>
+    <input type="text" id="server-url" />
+  </div>
+  <div class="function-divider"></div>
+  <h1>Пользователи</h1>
+  <br>
+  <h2>Вывод всех пользователей<h2>
+  <div class="button" onclick="getAllUsers()">Получить всех пользователей</div>
+  <div class="function-divider"></div>
+  <h2>Создание пользователя<h2>
+  <div class="input-field">
+    <label for="username">Имя</label>
+    <input type="text" id="first_name" />
+  </div>
+  <div class="input-field">
+    <label for="last_name">Фамилия</label>
+    <input type="text" id="last_name" />
+  </div>
+  <div class="input-field">
+    <label for="pin">PIN Пользователя</label>
+    <input type="text" id="pin" />
+  </div>
+  <div class="input-field">
+    <label for="balance">Стартовый баланс пользователя</label>
+    <input type="text" id="balance" />
+  </div>
+  <div class="button" onclick="createUser()">Создать пользователя</div>
+  <div class="function-divider"></div>
+  <div class="function-divider"></div>
+  <h2>Обновление пользователя<h2>
+  <div class="input-field">
+    <label for="user_id">ID Пользователя</label>
+    <input type="text" id="user_id" />
+  </div>
+  <div class="input-field">
+    <label for="username">Имя</label>
+    <input type="text" id="first_name" />
+  </div>
+  <div class="input-field">
+    <label for="last_name">Фамилия</label>
+    <input type="text" id="last_name" />
+  </div>
+  <div class="input-field">
+    <label for="pin">PIN Пользователя</label>
+    <input type="text" id="pin" />
+  </div>
+  <div class="input-field">
+    <label for="balance">Стартовый баланс пользователя</label>
+    <input type="text" id="balance" />
+  </div>
+  <div class="button" onclick="updateUser()">Обновить пользователя</div>
+
+
+  <div class="input-field">
+    <label for="delete_id">ID пользователя:</label>
+    <input type="text" id="delete_id" />
+  </div>
+  
+  <div class="button" onclick="deleteUser()">Удалить пользователя</div>
+
+ <div class="response" id="response"></div>
+
+  <script>
+    function getAllUsers() {
+      var serverUrl = document.getElementById('server-url').value;
+      var request = new XMLHttpRequest();
+      request.open('GET', serverUrl + '/users', true);
+
+      request.onload = function() {
+        if (request.status >= 200 && request.status < 400) {
+          var users = JSON.parse(request.responseText);
+          var responseDiv = document.getElementById('response');
+          responseDiv.innerHTML = '';
+
+          users.forEach(function(user) {
+            var userDiv = document.createElement('div');
+            userDiv.classList.add('user-info');
+            userDiv.innerHTML = 'Пользователь: ' + user[1] +' '+user[2] + '<br>ID: ' + user[0] + '<br>PIN: ' + user[3] + '<br>Balance: ' + user[4];
+            responseDiv.appendChild(userDiv);
+          });
+        } else {
+          console.error('Ошибка при получении пользователей. Статус:', request.status);
+        }
+      };
+
+      request.onerror = function() {
+        console.error('Ошибка при отправке запроса на сервер');
+      };
+
+      request.send();
+    }
+
+    function createUser() {
+      var serverUrl = document.getElementById('server-url').value;
+      var first_name = document.getElementById('first_name').value;
+      var last_name = document.getElementById('last_name').value;
+      var pin = document.getElementById('pin').value;
+      var balance = document.getElementById('balance').value;
+
+      var request = new XMLHttpRequest();
+      request.open('POST', serverUrl + '/users', true);
+      request.setRequestHeader('Content-Type', 'application/json');
+
+      request.onload = function() {
+        if (request.status >= 200 && request.status < 400) {
+          var response = JSON.parse(request.responseText);
+          var responseDiv = document.getElementById('response');
+          responseDiv.innerHTML = JSON.stringify("Пользователь создан! Его ID: "+response.id);
+        } else {
+          console.error('Ошибка при создании пользователя. Статус:', request.status);
+        }
+      };
+
+      request.onerror = function() {
+        console.error('Ошибка при отправке запроса на сервер');
+      };
+
+      var data = {
+        first_name : first_name,
+        last_name : last_name,
+        pin : pin,
+        balance : balance
+      };
+
+      request.send(JSON.stringify(data));
+    }
+
+    function updateUser() {
+      var serverUrl = document.getElementById('server-url').value;
+      var user_id = document.getElementById('user_id').value;
+      var first_name = document.getElementById('first_name').value;
+      var last_name = document.getElementById('last_name').value;
+      var pin = document.getElementById('pin').value;
+      var balance = document.getElementById('balance').value;
+
+      var request = new XMLHttpRequest();
+      request.open('PUT', serverUrl + '/users/' + user_id, true);
+      request.setRequestHeader('Content-Type', 'application/json');
+
+      request.onload = function() {
+        var userDiv = document.createElement('div');
+        var responseDiv = document.getElementById('response');
+        console.log(request.status);
+        console.log(request.responseText);
+        if (request.status == 204) {
+          var userDiv = document.createElement('div');
+            userDiv.innerHTML = 'Пользователь обновлен!';
+            responseDiv.appendChild(userDiv);
+        } else {
+          if (request.status == 404){
+            userDiv.innerHTML = 'Пользователя с данным ID не существует.';
+            responseDiv.appendChild(userDiv);
+          }
+          else{
+          userDiv.innerHTML = 'Ошибка при удалении пользователя. Статус:'+ request.status;
+          responseDiv.appendChild(userDiv);
+        }
+      }
+      responseDiv.appendChild(userDiv);
+      };
+
+      // Дополнительные поля для обновления, если требуется
+      var data = {
+        id : user_id,
+        first_name : first_name,
+        last_name : last_name,
+        pin : pin,
+        balance : balance
+      };
+
+      request.send(JSON.stringify(data));
+    }
+
+    function deleteUser() {
+      var serverUrl = document.getElementById('server-url').value;
+      var delete_id = document.getElementById('delete_id').value;
+
+      var request = new XMLHttpRequest();
+      request.open('DELETE', serverUrl + '/users/' + delete_id, true);
+
+      request.onload = function() {
+        var userDiv = document.createElement('div');
+        var responseDiv = document.getElementById('response');
+        console.log(request.status);
+        console.log(request.responseText);
+        if (request.status == 204) {
+          var userDiv = document.createElement('div');
+            userDiv.innerHTML = 'Пользователь удалён!';
+            responseDiv.appendChild(userDiv);
+        } else {
+          if (request.status == 404){
+            userDiv.innerHTML = 'Пользователя с данным ID не существует.';
+            responseDiv.appendChild(userDiv);
+          }
+          else{
+          userDiv.innerHTML = 'Ошибка при удалении пользователя. Статус:'+ request.status;
+          responseDiv.appendChild(userDiv);
+        }
+      }
+      responseDiv.appendChild(userDiv);
+      };
+
+      request.onerror = function() {
+        console.error('Ошибка при отправке запроса на сервер');
+      };
+
+      request.send();
+    }
+  </script>
+</body>
+</html>

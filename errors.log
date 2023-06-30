@@ -1,0 +1,12 @@
+2023-06-11 20:51:36,691 - __main__ - ERROR - Error occurred: no such column: user_id
+2023-06-11 20:52:10,155 - __main__ - ERROR - Error occurred: no such column: user_id
+2023-06-11 20:52:41,339 - __main__ - ERROR - Error occurred: no such column: user_id
+2023-06-11 20:52:54,772 - __main__ - ERROR - Error occurred: no such column: user_id
+2023-06-30 12:12:08,339 - __main__ - ERROR - Error occurred: name 'datetime' is not defined
+2023-06-30 12:12:08,339 - __main__ - ERROR - Error occurred: name 'datetime' is not defined
+2023-06-30 12:13:41,248 - __main__ - ERROR - Error occurred: name 'datetime' is not defined
+2023-06-30 12:13:41,249 - __main__ - ERROR - Error occurred: name 'datetime' is not defined
+2023-06-30 12:14:23,031 - __main__ - ERROR - Error occurred: module 'datetime' has no attribute 'now'
+2023-06-30 12:14:23,032 - __main__ - ERROR - Error occurred: module 'datetime' has no attribute 'now'
+2023-06-30 12:14:50,218 - __main__ - ERROR - Error occurred: name 'type_' is not defined
+2023-06-30 12:14:50,227 - __main__ - ERROR - Error occurred: name 'type_' is not defined
