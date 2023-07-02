@@ -4,6 +4,9 @@ from flask_bootstrap import Bootstrap
 from flask import Flask, render_template
 from datetime import datetime
 import requests
+import random
+from datetime import date, timedelta
+
 
 app = Flask(__name__)
 bootstrap = Bootstrap(app)
@@ -15,20 +18,20 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Устанавливаем уровень логгирования (можно настроить)
-logger.setLevel(logging.ERROR)
+logger.setLevel(logging.INFO)
 
 # Создаем объект обработчика, который записывает логи в файл
 handler = logging.FileHandler('errors.log')
 
 # Устанавливаем уровень логгирования обработчика
-handler.setLevel(logging.ERROR)
+handler.setLevel(logging.INFO)
 
 # Создаем форматтер для логгирования
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 # Устанавливаем форматтер для обработчика
 handler.setFormatter(formatter)
-
+ 
 # Добавляем обработчик в логгер
 logger.addHandler(handler)
 
@@ -53,71 +56,86 @@ def generate_account_number():
 
     conn.close()
     return account_number
+
 @app.route("/transfer", methods=["POST"])
 def money_send():
-    operation_data = request.json
-    account_number= operation_data["sender"]
-    reciever=operation_data["reciever"]
     try:
-        value=int(operation_data["value"])
-    except:
-         return jsonify({"message": "Сумма перевода не является числом"})
-    conn = sqlite3.connect(db_name)
-    cursor = conn.cursor()
-    cursor.execute("SELECT balance FROM users WHERE account_number = ?",(account_number,))
-    bal = cursor.fetchone()
-    try:
-        balace_sender = int(bal[0])
-        if value > balace_sender:
+        operation_data = request.json
+        account_number = operation_data["sender"]
+        receiver = operation_data["reciever"]
+        value = int(operation_data["value"])
+    except ValueError as e:
+        return jsonify({"message": "Сумма перевода не является числом " + str(e)})
+
+    with sqlite3.connect(db_name) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT balance FROM users WHERE account_number = ?", (account_number,))
+        balance_sender = cursor.fetchone()
+        
+        if not balance_sender:
+            return jsonify({"message": "Недостаточно средств или пользователь не существует."})
+        
+        balance_sender = int(balance_sender[0])
+        
+        if value > balance_sender:
             create_operation(account_number, "Транзакция", f"Списание на сумму {value} отклонено. Причина: Недостаточно средств.")
-            return jsonify({"message":"На счёте отправителя недостаточно средств."})
+            return jsonify({"message": "На счёте отправителя недостаточно средств."})
         elif value < 0:
-            return jsonify({"message":"Сумма не может быть меньше нуля."})
-        else:
-            cursor.execute("SELECT balance FROM users WHERE account_number = ?",(reciever,))
-            rec_bal = cursor.fetchone()
-            try:
-                rec_bal = int(rec_bal[0])
-                balace_sender = balace_sender - value
-                cursor.execute("UPDATE users SET balance=? WHERE account_number =? ",(balace_sender,account_number,))
-                rec_bal = rec_bal + value
-                cursor.execute("UPDATE users SET balance=? WHERE account_number =? ",(rec_bal,reciever,))
-                conn.commit()
-                conn.close()
-                create_operation(account_number, "Транзакция", f"Списание средств {value}р. На счет {reciever}")
-                create_operation(reciever, "Транзакция", f"Пополнение счёта на {value}р. От {account_number}")
-                return jsonify({"message":f"Успешный перевод на сумму {value} с счёта {account_number} на счёт {reciever}"})
-            except Exception as e:
-                return jsonify({"message":"Пользователя которому вы отправляете деньги не существует. Или ошибка "+str(e)})
-    except:
-        return jsonify({"message": "Недостаточно средств или пользователь не существует."})
+            return jsonify({"message": "Сумма не может быть меньше нуля."})
+
+        cursor.execute("SELECT balance FROM users WHERE account_number = ?", (receiver,))
+        rec_balance = cursor.fetchone()
+
+        if not rec_balance:
+            return jsonify({"message": "Пользователя, которому вы отправляете деньги, не существует."})
+
+        rec_balance = int(rec_balance[0])
+        balance_sender -= value
+        rec_balance += value
+
+        try:
+            cursor.execute("BEGIN")
+            cursor.execute("UPDATE users SET balance = ? WHERE account_number = ?", (balance_sender, account_number))
+            cursor.execute("UPDATE users SET balance = ? WHERE account_number = ?", (rec_balance, receiver))
+            conn.commit()
+            create_operation(account_number, "Транзакция", f"Списание средств {value}р. На счет {receiver}")
+            create_operation(receiver, "Транзакция", f"Пополнение счёта на {value}р. От {account_number}")
+            return jsonify({"message": f"Успешный перевод на сумму {value} с счёта {account_number} на счёт {receiver}"})
+        except Exception as e:
+            conn.rollback()
+            return jsonify({"message": "Ошибка при выполнении перевода: " + str(e)})
 
 @app.route("/add_money", methods=["POST"])
 def add_money():
-    operation_data = request.json
-    account_number = operation_data["account_number"]
     try:
-        value=int(operation_data["value"])
+        operation_data = request.json
+        account_number = operation_data["account_number"]
+        value = int(operation_data["value"])
+        
         if value < 0:
-            return jsonify({"message":"Сумма не может быть меньше нуля."})
-        conn = sqlite3.connect(db_name)
-        cursor = conn.cursor()
-        cursor.execute("SELECT balance FROM users WHERE account_number = ?",(account_number,))
-        balance = cursor.fetchone()[0]
-        try:
-            balance = int(balance)+value
-            cursor.execute("UPDATE users SET balance=? WHERE account_number =? ",(balance,account_number,))
-            conn.commit()
-            conn.close()
-            create_operation(account_number, "Транзакция", f"Пополнение счёта на {value} р.")
-            return jsonify({"message": f"Успешное пополнение счёта {account_number} на {value}р. "})
-        except Exception as e:
-            return jsonify({"message": "Ошибка пополнения "+e})
-    except Exception as e:
-        return jsonify({"message": "Сумма перевода не является числом"+str(e)})
+            return jsonify({"message": "Сумма не может быть меньше нуля."})
+        
+        with sqlite3.connect(db_name) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT balance FROM users WHERE account_number = ?", (account_number,))
+            balance = cursor.fetchone()
+            
+            if not balance:
+                return jsonify({"message": "Пользователь не существует."})
+            
+            balance = int(balance[0])
+            balance += value
 
-
-
+            try:
+                cursor.execute("UPDATE users SET balance = ? WHERE account_number = ?", (balance, account_number))
+                conn.commit()
+                create_operation(account_number, "Транзакция", f"Пополнение счёта на {value} р.")
+                return jsonify({"message": f"Успешное пополнение счёта {account_number} на {value}р."})
+            except Exception as e:
+                conn.rollback()
+                return jsonify({"message": "Ошибка пополнения: " + str(e)})
+    except ValueError as e:
+        return jsonify({"message": "Сумма перевода не является числом: " + str(e)})
 
 @app.route('/')
 def index():
@@ -219,27 +237,21 @@ def get_cards():
 
 # Создать новую карту
 @app.route("/cards", methods=["POST"])
-def create_card():
+def create_card_resp():
     card_data = request.json
-    conn = sqlite3.connect(db_name)
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO cards (user_id, card_number, expiry_date, cvv, balance, type) VALUES (?, ?, ?, ?, ?, ?)",
-                   (card_data["user_id"], card_data["card_number"], card_data["expiry_date"], card_data["cvv"], card_data["balance"], card_data["type"]))
-    conn.commit()
-    conn.close()
-    return jsonify({"message": "Card created successfully"})
+    create_card(card_data["user_id"], card_data["type"])
 
-# Обновить информацию о карте
-@app.route("/cards/<int:card_id>", methods=["PUT"])
-def update_card(card_id):
-    card_data = request.json
+def create_card(user_id,type_):
     conn = sqlite3.connect(db_name)
     cursor = conn.cursor()
-    cursor.execute("UPDATE cards SET user_id=?, card_number=?, expiry_date=?, cvv=?, balance=?, type=? WHERE id=?",
-                   (card_data["user_id"], card_data["card_number"], card_data["expiry_date"], card_data["cvv"], card_data["balance"], card_data["type"], card_id))
+    random_card_data = generate_random_card_data()
+
+    cursor.execute("INSERT INTO cards (user_id, card_number, expiry_date, cvv, type) VALUES (?, ?, ?, ?, ?)",
+                   (user_id,random_card_data["card_number"],random_card_data["expiry_date"],random_card_data["cvv"],type_))
     conn.commit()
     conn.close()
-    return jsonify({"message": "Card updated successfully"})
+    create_operation(user_id, "Системное сообщение", f"Создана карта {random_card_data["card_number"]}")
+    return jsonify({"message": f"Карта {random_card_data["card_number"]} создана."})
 
 # Удалить карту
 @app.route("/cards/<int:card_id>", methods=["DELETE"])
@@ -250,6 +262,54 @@ def delete_card(card_id):
     conn.commit()
     conn.close()
     return jsonify({"message": "Card deleted successfully"})
+
+# Генерация случайного номера карты
+def generate_card_number():
+    card_number = ""
+    for _ in range(4):
+        card_number += str(random.randint(1000, 9999)) + " "
+    return card_number.strip()
+
+# Генерация случайной даты действия карты
+def generate_expiry_date():
+    current_date = date.today()
+    expiry_date = current_date + timedelta(days=random.randint(1, 365 * 5))
+    return expiry_date.strftime("%m/%Y")
+
+# Генерация случайного CVV-кода
+def generate_cvv():
+    return str(random.randint(100, 999))
+
+# Проверка наличия карты в базе данных
+def check_card_exists(card_number):
+    conn = sqlite3.connect(db_name)
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM cards WHERE card_number = ?", (card_number,))
+    result = cursor.fetchone()
+    conn.close()
+    if result is None:
+        return False
+    else:
+        return True
+
+# Генерация случайных данных банковской карты
+def generate_random_card_data():
+    while True:
+        card_number = generate_card_number()
+        if not check_card_exists(card_number):
+            break
+    
+    expiry_date = generate_expiry_date()
+    cvv = generate_cvv()
+
+    return {
+        "card_number": card_number,
+        "expiry_date": expiry_date,
+        "cvv": cvv
+    }
+
+
+
 
 
 ###ПОЛЬЗОВАТЕЛИ###
